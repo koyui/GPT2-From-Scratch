@@ -3,7 +3,7 @@ import regex as re
 import pandas as pd
 import os.path as osp
 from tqdm import tqdm
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from functools import reduce
 class BBPE():
@@ -16,6 +16,7 @@ class BBPE():
         # From transformers/src/transformers/models/gpt2/tokenization_gpt2.py.
         # I think this is how to prevent BPE from merging across characters and add an exception for space.
         self.tokenizer_pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+        self.pad_token, self.eos_token, self.sep_token = range(vocab_size + 1, vocab_size + 4)
     
     def from_file(self, file_path):
         with open(file_path, 'r') as f:

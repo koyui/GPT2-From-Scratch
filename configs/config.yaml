@@ -1,0 +1,23 @@
+DATA:
+  data_root: ./deps/reviews.csv
+  # save_merge: ./deps/merge_rule.json
+  save_merge:
+  from_file: ./deps/merge_rule.json
+  batch_size: 32
+  max_tokens: 256
+
+MODEL:
+  phase: train # test
+  vocab_size: 1024
+  n_emb: 768
+  n_head: 6
+  n_layer: 6
+  max_tokens: 256
+  topk: 5
+
+TRAIN:
+  lr: 3e-4
+  max_training_epochs: 9999
+  save_per: 20
+  model_save: ./ckpts/gpt2
+  from_pretrained: 
