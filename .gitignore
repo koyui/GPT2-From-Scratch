@@ -1,3 +1,4 @@
 ckpts
 tmp
 __pycache__
+wandb

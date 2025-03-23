@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from utils.bbpe import BBPE
     
 class MultiheadAttention(nn.Module):
     def __init__(self, config):
@@ -59,9 +60,11 @@ class TransformerBlock(nn.Module):
 class Transformer(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.wte = nn.Embedding(config.vocab_size, config.n_emb),
-        self.wpe = nn.Embedding(config.max_tokens, config.n_emb),
-        self.blocks = [TransformerBlock(config) for _ in range(config.n_layer)],
+        self.config = config
+        # vocab_size should add 3 to cover special tokens.
+        self.wte = nn.Embedding(config.vocab_size + 3, config.n_emb)
+        self.wpe = nn.Embedding(config.max_tokens, config.n_emb)
+        self.blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_layer)])
         self.ln_final = nn.LayerNorm(config.n_emb)
     
     def forward(self, idx):
@@ -74,23 +77,31 @@ class Transformer(nn.Module):
         for block in self.blocks:
             x = block(x)
         x = self.ln_final(x)
+        return x
         
 
 class GPT2(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, bbpe):
         # config is config.MODEL for global config
         super().__init__()
         self.config = config
         self.transformer = Transformer(config)
-        self.lm_head = nn.Linear(config.n_emb, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.n_emb, config.vocab_size + 3, bias=False)
+        self.bbpe = bbpe
         
     def forward(self, idx, targets=None, mask=None):
         # idx (B, T)
-        x = self.transformer(idx)
-        logits = self.lm_head(x)    # (B, T, v)
+        x = self.transformer(idx)   # (B, T, n_emb)
+        logits = self.lm_head(x)    # (B, T, vocab_size)
         loss = None
         if targets is not None:
-            loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), targets.view(-1))
-            loss = mask * loss
+            loss = F.cross_entropy(
+                logits.view(-1, logits.shape[-1]), 
+                targets.view(-1),
+                ignore_index=self.bbpe.pad_token,
+                reduction='none'
+            )
+            # Ensure loss is element-wise calculated.
+            loss = torch.sum(mask.reshape(-1) * loss) / torch.sum(mask)
         return logits, loss
         

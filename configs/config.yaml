@@ -3,13 +3,13 @@ DATA:
   # save_merge: ./deps/merge_rule.json
   save_merge:
   from_file: ./deps/merge_rule.json
-  batch_size: 32
+  batch_size: 64
   max_tokens: 256
 
 MODEL:
   phase: train # test
   vocab_size: 1024
-  n_emb: 768
+  n_emb: 384
   n_head: 6
   n_layer: 6
   max_tokens: 256
@@ -21,3 +21,9 @@ TRAIN:
   save_per: 20
   model_save: ./ckpts/gpt2
   from_pretrained: 
+  with_monitor: True
+
+TEST:
+  from_pretrained:
+  from_flie: ./test/input.txt
+  result_save: ./text/result.txt

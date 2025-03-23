@@ -16,7 +16,7 @@ class BBPE():
         # From transformers/src/transformers/models/gpt2/tokenization_gpt2.py.
         # I think this is how to prevent BPE from merging across characters and add an exception for space.
         self.tokenizer_pat = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
-        self.pad_token, self.eos_token, self.sep_token = range(vocab_size + 1, vocab_size + 4)
+        self.pad_token, self.eos_token, self.sep_token = range(vocab_size, vocab_size + 3)
     
     def from_file(self, file_path):
         with open(file_path, 'r') as f:
