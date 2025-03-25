@@ -7,7 +7,7 @@ Build a lightweight GPT2 from scratch, train it on movie reviews, and complete m
 conda create -n koyui_gpt2 python=3.10 -y
 conda activate koyui_gpt2
 pip install torch==2.0.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
-pip install -r requirments.txt
+pip install -r requirements.txt
 ```
 
 ### Device
