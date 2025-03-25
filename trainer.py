@@ -26,11 +26,32 @@ class Trainer(nn.Module):
         self.config = config
         self.bbpe = BBPE(config.MODEL.vocab_size)
         # bbpe load or build in the dataset initialization
+        # Must be here, or bbpe will not be correctly constructed.
+        self.train_dataset = GPT2Dataset(
+            config.DATA, 
+            self.bbpe, 
+            build_bbpe=True, 
+            device=device, 
+            mode='train'
+        )
+        self.val_dataset = GPT2Dataset(
+            config.DATA, 
+            self.bbpe, 
+            build_bbpe=False, 
+            device=device, 
+            mode='val'
+        )
         self.model = GPT2(config.MODEL, self.bbpe).to(device)
         if self.config.MODEL.phase == 'train':
-            self.dataset = GPT2Dataset(config.DATA, self.bbpe, device)
-            self.dataloader = DataLoader(
-                self.dataset,
+            self.train_dataloader = DataLoader(
+                self.train_dataset,
+                config.DATA.batch_size,
+                shuffle=False, 
+                drop_last=False, 
+                collate_fn=collate_fn
+            )
+            self.val_dataloader = DataLoader(
+                self.val_dataset,
                 config.DATA.batch_size,
                 shuffle=False, 
                 drop_last=False, 
@@ -61,7 +82,7 @@ class Trainer(nn.Module):
         # TODO: Real generate with batch, now batch generate assumes all sentences in the same size without padding, 
         while x.shape[1] < self.config.DATA.max_tokens:
             with torch.no_grad():
-                logits = self.model(x)  # (B, T, vocab_size)
+                logits, _ = self.model(x)  # (B, T, vocab_size)
                 logits = logits[:, -1, :]   # (B, vocab_size)
                 probs = F.softmax(logits, dim=-1)
                 topk_probs, topk_indices = torch.topk(probs, self.config.MODEL.topk, dim=-1)  # (B, topk), (B, topk)
@@ -74,17 +95,30 @@ class Trainer(nn.Module):
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.TRAIN.lr)
         training_loop = trange(self.config.TRAIN.max_training_epochs)
         for epoch in training_loop:
+            # Train
             loss_list = []
-            for batch in tqdm(self.dataloader):
+            for batch in tqdm(self.train_dataloader):
                 optimizer.zero_grad()
                 _, loss = self.model(batch["input"], batch["target"], batch["mask"])
                 loss_list.append(loss.item())
                 loss.backward()
                 optimizer.step()
                 
-            loss_per_element = sum(loss_list)/len(loss_list)
-            wandb.log({"loss_per_element": loss_per_element, "epoch": epoch})
-            training_loop.set_description(f'Loss per element: {loss_per_element}')
+            train_loss = sum(loss_list)/len(loss_list)
+            
+            # Validation
+            loss_list = []
+            for batch in tqdm(self.val_dataloader):
+                with torch.no_grad():
+                    _, loss = self.model(batch["input"], batch["target"], batch["mask"])
+                loss_list.append(loss.item())
+            
+            val_loss = sum(loss_list)/len(loss_list)
+            
+            
+            training_loop.set_description(f'Train loss(element): {train_loss}, Validation loss(element): {val_loss}')
+            
+            wandb.log({"Train loss(element)": train_loss, "Validation loss(element)": val_loss})
             if epoch % self.config.TRAIN.save_per == 0:
                 self.save_model(epoch)
     
@@ -96,7 +130,8 @@ class Trainer(nn.Module):
         
         if len(batch.shape) == 1:   # (T, )
             batch = batch.unsqueeze(0)  # (B, T)
-        batch = batch.to_list()
+        batch = batch.tolist()
+        print(batch)
         text_list = []
         for tokens in batch:
             eos_pos = len(tokens)
@@ -107,12 +142,17 @@ class Trainer(nn.Module):
                 elif token == self.bbpe.eos_token:
                     eos_pos = pos
                     break
-            text_list.append(self.bbpe.decode(tokens[sep_pos:eos_pos]))
+            decode_tokens = tokens[sep_pos:eos_pos]
+            decode_tokens = [t for t in decode_tokens if t != self.bbpe.pad_token]
+            print("Decoded tokens:", decode_tokens)
+            print("Length:", len(decode_tokens))
+            text_list.append(self.bbpe.decode(decode_tokens))
+            print(text_list)
             
         return text_list
     
     def test(self):
-        with open(config.TEST.from_file, 'r') as f:
+        with open(config.TEST.from_file, 'r', encoding='utf-8') as f:
             text_list = f.readlines()
         results = []
         for text in text_list:
@@ -120,7 +160,7 @@ class Trainer(nn.Module):
             tokens.append(self.bbpe.sep_token)
             x = torch.as_tensor(tokens).unsqueeze(0).long().to(device)
             text = self.generate(x)
-            decoded_text = self.batch_decode(decoded_text)
+            decoded_text = self.batch_decode(text)
             results += decoded_text
         with open(self.config.TEST.result_save, 'w') as f:
             f.writelines(results)

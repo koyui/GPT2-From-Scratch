@@ -7,26 +7,43 @@ import torch.utils.data.dataloader
 from copy import deepcopy
 
 class GPT2Dataset(torch.utils.data.Dataset):
-    def __init__(self, config, bbpe, device):
+    def __init__(self, config, bbpe, build_bbpe, device, mode='train'):
         # config is config.DATA for global config
         super().__init__()
         self.config = config
         
         # loading csv reviews
         df = pd.read_csv(config.data_root)
-        self.data_list = df.iloc[:, 0].to_list()
-        self.rating_list = df.iloc[:, 1].to_list()
-    
+        raw_data = df.iloc[:, 0].to_list()
+        raw_rating = df.iloc[:, 1].to_list()
+
         # construct bbpe
         self.bbpe = bbpe
-        if config.from_file:
-            self.bbpe.from_file(config.from_file)
-        else:
-            if config.save_merge:
-                self.bbpe.build_vocab(self.data_list, config.save_merge)
+        if build_bbpe:
+            if config.from_file:
+                self.bbpe.from_file(config.from_file)
             else:
-                self.bbpe.build_vocab(self.data_list)
+                if config.save_merge:
+                    self.bbpe.build_vocab(raw_data, config.save_merge)
+                else:
+                    self.bbpe.build_vocab(raw_data)
                 
+        # Clean data if there is a command too short which is not good for learning
+        self.data_list =  []
+        self.rating_list = []
+        for i, data in enumerate(raw_data):
+            if len(data.encode('utf-8')) > 3:
+                self.data_list.append(data)
+                self.rating_list.append(raw_rating[i]) 
+        
+        print(f"Data cleaning done.\nRemain {len(self.data_list)} piece of commands.")
+        
+        train_length = int(len(self.data_list) * (1 - config.val_ratio))
+        if mode == 'train':
+            self.data_list = self.data_list[:train_length]
+        elif mode == 'val':
+            self.data_list = self.data_list[train_length:]
+        
         # prefix for prompt
         self.pos_prefix = self.bbpe.encode("好看")
         self.neg_prefix = self.bbpe.encode("不好看")

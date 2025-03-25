@@ -1,29 +1,32 @@
 DATA:
   data_root: ./deps/reviews.csv
-  # save_merge: ./deps/merge_rule.json
   save_merge:
-  from_file: ./deps/merge_rule.json
+  # save_merge: ./deps
+  # from_file:
+  from_file: ./deps/merge_rule_1024.json
   batch_size: 64
   max_tokens: 256
+  val_ratio: 0.1
 
 MODEL:
-  phase: train # test
+  phase: test
+  # phase: test
   vocab_size: 1024
-  n_emb: 384
-  n_head: 6
-  n_layer: 6
+  n_emb: 96
+  n_head: 3
+  n_layer: 12
   max_tokens: 256
-  topk: 5
+  topk: 3
 
 TRAIN:
-  lr: 3e-4
+  lr: 1e-4
   max_training_epochs: 9999
-  save_per: 20
+  save_per: 15
   model_save: ./ckpts/gpt2
   from_pretrained: 
   with_monitor: True
 
 TEST:
-  from_pretrained:
-  from_flie: ./test/input.txt
-  result_save: ./text/result.txt
+  from_pretrained: ./ckpts/gpt2_20250325_170253/30.pth
+  from_file: ./test/input.txt
+  result_save: ./test/result.txt

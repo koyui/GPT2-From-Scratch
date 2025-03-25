@@ -16,5 +16,6 @@ My device (RTX 3060 Laptop GPU with 6GB VRAM and i7-12700H CPU) is capable of tr
 ### TODO
 - ✓ Implement BBPE and build vocabulary on these reviews. (Tested)
 - ✓ Build GPT2 Training Framework.
+- ✓ Validation at the end of each training loop.
 - [] Try to train a model with proper hyperparameters and get a good test result
 - [] Conduct evaluations

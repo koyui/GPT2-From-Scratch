@@ -87,7 +87,7 @@ class BBPE():
             
         print("Done!")
         if save_merge:
-            save_path = osp.join(save_merge, 'merge_rule.json')
+            save_path = osp.join(save_merge, f'merge_rule_{self.max_vocab_size}.json')
             with open(save_path, 'w') as f:
                 to_save = {str(k):v for k, v in self.merge_rules.items()}
                 json.dump(to_save, f, indent=2)
@@ -116,7 +116,7 @@ class BBPE():
         return new_tokens
 
     def decode(self, idxs):
-        return reduce(lambda x, y:x+y, [self.vocab[idx] for idx in idxs]).decode('utf8')
+        return reduce(lambda x, y:x+y, [self.vocab[idx] for idx in idxs]).decode('utf8', errors='ignore')
                
 if __name__ == "__main__":
     # Code for test BBPE
