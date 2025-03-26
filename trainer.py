@@ -41,22 +41,22 @@ class Trainer(nn.Module):
             device=device, 
             mode='val'
         )
+        self.train_dataloader = DataLoader(
+            self.train_dataset,
+            config.DATA.batch_size,
+            shuffle=False, 
+            drop_last=False, 
+            collate_fn=collate_fn
+        )
+        self.val_dataloader = DataLoader(
+            self.val_dataset,
+            config.DATA.batch_size,
+            shuffle=False, 
+            drop_last=False, 
+            collate_fn=collate_fn
+        )
         self.model = GPT2(config.MODEL, self.bbpe).to(device)
         if self.config.MODEL.phase == 'train':
-            self.train_dataloader = DataLoader(
-                self.train_dataset,
-                config.DATA.batch_size,
-                shuffle=False, 
-                drop_last=False, 
-                collate_fn=collate_fn
-            )
-            self.val_dataloader = DataLoader(
-                self.val_dataset,
-                config.DATA.batch_size,
-                shuffle=False, 
-                drop_last=False, 
-                collate_fn=collate_fn
-            )
             if self.config.TRAIN.from_pretrained:
                 self.load_model(self.config.TRAIN.from_pretrained)
                 
@@ -92,7 +92,11 @@ class Trainer(nn.Module):
         return x
     
     def train(self):
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.config.TRAIN.lr)
+        optimizer = torch.optim.AdamW(
+            self.model.parameters(), 
+            lr=self.config.TRAIN.lr, 
+            weight_decay=self.config.TRAIN.weight_decay
+        )
         training_loop = trange(self.config.TRAIN.max_training_epochs)
         for epoch in training_loop:
             # Train
@@ -114,7 +118,6 @@ class Trainer(nn.Module):
                 loss_list.append(loss.item())
             
             val_loss = sum(loss_list)/len(loss_list)
-            
             
             training_loop.set_description(f'Train loss(element): {train_loss}, Validation loss(element): {val_loss}')
             
@@ -162,9 +165,18 @@ class Trainer(nn.Module):
             text = self.generate(x)
             decoded_text = self.batch_decode(text)
             results += decoded_text
+            
         with open(self.config.TEST.result_save, 'w') as f:
             f.writelines(results)
         print(f"Test done, save to {self.config.TEST.result_save}")
+    
+    def evaluate(self):
+        loss_list = []
+        for batch in tqdm(self.val_dataloader):
+            with torch.no_grad():
+                _, loss = self.model(batch["input"], batch["target"], batch["mask"])
+            loss_list.append(loss.item())
+        print("Perplexity:", torch.exp(torch.as_tensor(loss_list).mean()).item())
         
                 
 if __name__ == "__main__":
@@ -174,4 +186,6 @@ if __name__ == "__main__":
         trainer.train()
     elif config.MODEL.phase == 'test':
         trainer.test()
+    elif config.MODEL.phase == 'evaluation':
+        trainer.evaluate()
     

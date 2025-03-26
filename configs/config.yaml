@@ -7,12 +7,15 @@ DATA:
   batch_size: 64
   max_tokens: 256
   val_ratio: 0.1
+  # tokenizer: tiktoken
+  tokenizer: bbpe
 
 MODEL:
-  phase: test
+  # phase: train
   # phase: test
+  phase: evaluation
   vocab_size: 1024
-  n_emb: 96
+  n_emb: 768
   n_head: 3
   n_layer: 12
   max_tokens: 256
@@ -20,13 +23,14 @@ MODEL:
 
 TRAIN:
   lr: 1e-4
-  max_training_epochs: 9999
-  save_per: 15
+  weight_decay: 1e-4
+  max_training_epochs: 150
+  save_per: 6
   model_save: ./ckpts/gpt2
   from_pretrained: 
   with_monitor: True
 
 TEST:
-  from_pretrained: ./ckpts/gpt2_20250325_170253/30.pth
+  from_pretrained: ./ckpts/gpt2_20250326_183845/6.pth
   from_file: ./test/input.txt
   result_save: ./test/result.txt
