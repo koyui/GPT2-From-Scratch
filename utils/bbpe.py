@@ -8,7 +8,6 @@ from typing import List, Tuple
 from functools import reduce
 class BBPE():
     def __init__(self, vocab_size):
-        super().__init__()
         self.max_vocab_size = vocab_size
         self.now_vocab_size = 256
         self.merge_rules = {}

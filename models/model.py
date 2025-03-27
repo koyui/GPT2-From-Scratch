@@ -2,7 +2,6 @@ import math
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from utils.bbpe import BBPE
     
 class MultiheadAttention(nn.Module):
     def __init__(self, config):
@@ -81,13 +80,13 @@ class Transformer(nn.Module):
         
 
 class GPT2(nn.Module):
-    def __init__(self, config, bbpe):
+    def __init__(self, config, tokenizer):
         # config is config.MODEL for global config
         super().__init__()
         self.config = config
         self.transformer = Transformer(config)
         self.lm_head = nn.Linear(config.n_emb, config.vocab_size + 3, bias=False)
-        self.bbpe = bbpe
+        self.tokenizer = tokenizer
         
     def forward(self, idx, targets=None, mask=None):
         # idx (B, T)
@@ -98,7 +97,7 @@ class GPT2(nn.Module):
             loss = F.cross_entropy(
                 logits.view(-1, logits.shape[-1]), 
                 targets.view(-1),
-                ignore_index=self.bbpe.pad_token,
+                ignore_index=self.tokenizer.pad_token,
                 reduction='none'
             )
             # Ensure loss is element-wise calculated.

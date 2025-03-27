@@ -2,3 +2,4 @@ ckpts
 tmp
 __pycache__
 wandb
+bert-base-chinese

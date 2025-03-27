@@ -1,23 +1,35 @@
 DATA:
+  # General settings for the dataset
   data_root: ./deps/reviews.csv
+  val_ratio: 0.1
+  batch_size: 64
+  max_tokens: 256
+
+  # Settings for the tokenizer
+  ################################################## BBPE
+  # tokenizer: bbpe
+  # save_merge:
+  # # save_merge: ./deps
+  # # from_file:
+  # from_file: ./deps/merge_rule_1024.json
+  ################################################## BERT
+  tokenizer: bert
   save_merge:
   # save_merge: ./deps
   # from_file:
-  from_file: ./deps/merge_rule_1024.json
-  batch_size: 64
-  max_tokens: 256
-  val_ratio: 0.1
-  # tokenizer: tiktoken
-  tokenizer: bbpe
+  from_file: ./deps/bert_map_2550.json
 
 MODEL:
   # phase: train
-  # phase: test
-  phase: evaluation
-  vocab_size: 1024
-  n_emb: 768
+  phase: test
+  # phase: evaluation
+
+  # vocab_size: 1024 
+  vocab_size: 2550 # for bert
+
+  n_emb: 384
   n_head: 3
-  n_layer: 12
+  n_layer: 6
   max_tokens: 256
   topk: 3
 
@@ -25,12 +37,12 @@ TRAIN:
   lr: 1e-4
   weight_decay: 1e-4
   max_training_epochs: 150
-  save_per: 6
+  save_per: 8
   model_save: ./ckpts/gpt2
   from_pretrained: 
   with_monitor: True
 
 TEST:
-  from_pretrained: ./ckpts/gpt2_20250326_183845/6.pth
+  from_pretrained: ./ckpts/gpt2_20250327_170105/8.pth
   from_file: ./test/input.txt
   result_save: ./test/result.txt
