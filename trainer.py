@@ -10,6 +10,7 @@ import os.path as osp
 from torch.utils.data.dataloader import DataLoader
 from tqdm import trange, tqdm
 from omegaconf import OmegaConf
+from bert_score import BERTScorer
 
 from models.model import GPT2
 from data.utils import collate_fn
@@ -77,6 +78,11 @@ class Trainer(nn.Module):
         elif self.config.MODEL.phase == 'test':
             self.load_model(self.config.TEST.from_pretrained)
             self.model.eval()
+        
+        elif self.config.MODEL.phase == 'evaluation':
+            self.load_model(self.config.EVALUATE.from_pretrained)
+            self.model.eval()
+            self.scorer = BERTScorer(model_type='./deps/bert-base-chinese', num_layers=5)   # From issues
              
     def load_model(self, model_path):
         milestone = torch.load(model_path, map_location=device)
@@ -145,7 +151,7 @@ class Trainer(nn.Module):
         if len(batch.shape) == 1:   # (T, )
             batch = batch.unsqueeze(0)  # (B, T)
         batch = batch.tolist()
-        print(batch)
+        # print(batch)
         text_list = []
         for tokens in batch:
             eos_pos = len(tokens)
@@ -158,8 +164,8 @@ class Trainer(nn.Module):
                     break
             decode_tokens = tokens[sep_pos:eos_pos]
             decode_tokens = [t for t in decode_tokens if t != self.tokenizer.pad_token]
-            print("Decoded tokens:", decode_tokens)
-            print("Length:", len(decode_tokens))
+            # print("Decoded tokens:", decode_tokens)
+            # print("Length:", len(decode_tokens))
             text_list.append(self.tokenizer.decode(decode_tokens))
             print(text_list)
             
@@ -189,6 +195,22 @@ class Trainer(nn.Module):
                 _, loss = self.model(batch["input"], batch["target"], batch["mask"])
             loss_list.append(loss.item())
         print("Perplexity:", torch.exp(torch.as_tensor(loss_list).mean()).item())
+        val_datalist = self.val_dataset.data_list
+        val_len = len(val_datalist)
+        results = []
+        val_len = min(val_len, self.config.EVALUATE.eval_length)
+        for i in range(val_len):
+            if self.val_dataset.rating_list[i] == 1:
+                tokens = self.tokenizer.encode("好看")
+            else:
+                tokens = self.tokenizer.encode("不好看")
+            tokens.append(self.tokenizer.sep_token)
+            x = torch.as_tensor(tokens).unsqueeze(0).long().to(device)
+            text = self.generate(x)
+            decoded_text = self.batch_decode(text)
+            results += decoded_text
+        P, R, F1 = self.scorer.score(results, val_datalist[:val_len])
+        print("Bert-score(F1):", F1.mean().item())
         
                 
 if __name__ == "__main__":
@@ -200,4 +222,3 @@ if __name__ == "__main__":
         trainer.test()
     elif config.MODEL.phase == 'evaluation':
         trainer.evaluate()
-    

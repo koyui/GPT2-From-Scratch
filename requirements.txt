@@ -2,6 +2,7 @@ regex
 tqdm
 pandas
 omegaconf
-numpy==1.22.4
+numpy==1.26.4
 tiktoken
-transformers
+transformers==2.2.0
+bert-score==0.3.2
