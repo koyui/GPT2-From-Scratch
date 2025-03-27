@@ -75,6 +75,7 @@ class Trainer(nn.Module):
                 
                 
         elif self.config.MODEL.phase == 'test':
+            self.load_model(self.config.TEST.from_pretrained)
             self.model.eval()
              
     def load_model(self, model_path):
@@ -176,7 +177,8 @@ class Trainer(nn.Module):
             decoded_text = self.batch_decode(text)
             results += decoded_text
             
-        with open(self.config.TEST.result_save, 'w') as f:
+        results = [result + '\n' for result in results]
+        with open(self.config.TEST.result_save, 'w', encoding='utf-8') as f:
             f.writelines(results)
         print(f"Test done, save to {self.config.TEST.result_save}")
     

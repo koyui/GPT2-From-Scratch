@@ -46,7 +46,7 @@ class CustomBertTokenizer():
 
     def decode(self, idxs):
         inverse_map_tokens = [self.inverse_vocab_map[str(idx)] for idx in idxs]
-        return self.tokenizer.decode(inverse_map_tokens)
+        return self.tokenizer.decode(inverse_map_tokens).replace(" ", "")
 
 if __name__ == "__main__":
     # Code for test BBPE
