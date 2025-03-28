@@ -115,6 +115,8 @@ class BBPE():
         return new_tokens
 
     def decode(self, idxs):
+        if len(idxs) == 0:
+            return ""
         return reduce(lambda x, y:x+y, [self.vocab[idx] for idx in idxs]).decode('utf8', errors='ignore')
                
 if __name__ == "__main__":

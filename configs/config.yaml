@@ -7,29 +7,29 @@ DATA:
 
   # Settings for the tokenizer
   ################################################## BBPE
-  # tokenizer: bbpe
-  # save_merge:
-  # # save_merge: ./deps
-  # # from_file:
-  # from_file: ./deps/merge_rule_1024.json
-  ################################################## BERT
-  tokenizer: bert
+  tokenizer: bbpe
   save_merge:
   # save_merge: ./deps
   # from_file:
-  from_file: ./deps/bert_map_2550.json
+  from_file: ./deps/merge_rule_1024.json
+  ################################################## BERT
+  # tokenizer: bert
+  # save_merge:
+  # # save_merge: ./deps
+  # # from_file:
+  # from_file: ./deps/bert_map_2550.json
 
 MODEL:
   # phase: train
   # phase: test
   phase: evaluation
 
-  # vocab_size: 1024 
-  vocab_size: 2550 # for bert
+  vocab_size: 1024
+  # vocab_size: 2550 # for bert
 
-  n_emb: 384
-  n_head: 3
-  n_layer: 6
+  n_emb: 192
+  n_head: 6
+  n_layer: 12
   max_tokens: 256
   topk: 3
 
@@ -48,5 +48,6 @@ TEST:
   result_save: ./test/result.txt
 
 EVALUATE:
-  from_pretrained: ./ckpts/gpt2_20250327_170105/96.pth
+  evaluate_folder: ./ckpts/gpt2_20250325_210808
+  # from_pretrained: ./ckpts/gpt2_20250327_170105/96.pth
   eval_length: 20

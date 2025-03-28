@@ -7,10 +7,11 @@ import torch.nn.functional as F
 
 import os.path as osp
 
-from torch.utils.data.dataloader import DataLoader
 from tqdm import trange, tqdm
 from omegaconf import OmegaConf
+from natsort import natsorted
 from bert_score import BERTScorer
+from torch.utils.data.dataloader import DataLoader
 
 from models.model import GPT2
 from data.utils import collate_fn
@@ -80,8 +81,17 @@ class Trainer(nn.Module):
             self.model.eval()
         
         elif self.config.MODEL.phase == 'evaluation':
-            self.load_model(self.config.EVALUATE.from_pretrained)
-            self.model.eval()
+            if self.config.EVALUATE.evaluate_folder:
+                self.eval_folder = self.config.EVALUATE.evaluate_folder
+                self.models_list = natsorted(os.listdir(self.eval_folder))
+                self.time_stamp = osp.basename(self.eval_folder).split('gpt2_')[1]
+                if self.config.DATA.tokenizer == 'bbpe':
+                    wandb.init(project="koyui_GPT2", name="eval_" + self.time_stamp, config=dict(self.config))
+                if self.config.DATA.tokenizer == 'bert':
+                    wandb.init(project="koyui_GPT2_bert", name="eval_" + self.time_stamp, config=dict(self.config))
+            else:
+                self.load_model(self.config.EVALUATE.from_pretrained)
+                self.model.eval()
             self.scorer = BERTScorer(model_type='./deps/bert-base-chinese', num_layers=5)   # From issues
              
     def load_model(self, model_path):
@@ -188,18 +198,19 @@ class Trainer(nn.Module):
             f.writelines(results)
         print(f"Test done, save to {self.config.TEST.result_save}")
     
-    def evaluate(self):
+    def evaluate_single(self):
         loss_list = []
         for batch in tqdm(self.val_dataloader):
             with torch.no_grad():
                 _, loss = self.model(batch["input"], batch["target"], batch["mask"])
             loss_list.append(loss.item())
-        print("Perplexity:", torch.exp(torch.as_tensor(loss_list).mean()).item())
+        perplexity = torch.exp(torch.as_tensor(loss_list).mean()).item()
+
         val_datalist = self.val_dataset.data_list
         val_len = len(val_datalist)
         results = []
         val_len = min(val_len, self.config.EVALUATE.eval_length)
-        for i in range(val_len):
+        for i in trange(val_len):
             if self.val_dataset.rating_list[i] == 1:
                 tokens = self.tokenizer.encode("好看")
             else:
@@ -210,9 +221,21 @@ class Trainer(nn.Module):
             decoded_text = self.batch_decode(text)
             results += decoded_text
         P, R, F1 = self.scorer.score(results, val_datalist[:val_len])
-        print("Bert-score(F1):", F1.mean().item())
+        return perplexity, F1.mean().item()
         
-                
+    
+    def evaluate(self):
+        if self.config.EVALUATE.evaluate_folder:
+            for model in self.models_list:
+                self.load_model(osp.join(self.eval_folder, model))
+                epoch = int(model.split('.')[0])
+                perplexity, F1 = self.evaluate_single()
+                wandb.log({"Perplexity": perplexity, "Bert-score(F1)": F1}, step=epoch)
+        else:
+            perplexity, F1 = self.evaluate_single()
+            print("Perplexity:", perplexity)
+            print("Bert-score(F1):", F1)
+
 if __name__ == "__main__":
     config = OmegaConf.load('./configs/config.yaml')
     trainer = Trainer(config)
