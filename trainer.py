@@ -186,8 +186,8 @@ class Trainer(nn.Module):
             text_list = f.readlines()
         results = []
         for text in text_list:
-            tokens = self.tokenizer.encode(text)
-            tokens.append(self.tokenizer.sep_token)
+            prefix, suffix = text.split('[sep]')
+            tokens = self.tokenizer.encode(prefix) + [self.tokenizer.sep_token] + self.tokenizer.encode(suffix)
             x = torch.as_tensor(tokens).unsqueeze(0).long().to(device)
             text = self.generate(x)
             decoded_text = self.batch_decode(text)

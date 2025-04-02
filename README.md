@@ -27,5 +27,5 @@ Thanks to the following references that I refer to and benefited from:
 - ✓ Implement BBPE and build vocabulary on these reviews. (Tested)
 - ✓ Build GPT2 Training Framework.
 - ✓ Validation at the end of each training loop.
-- [] Try to train a model with proper hyperparameters and get a good test result
-- [] Conduct evaluations
+- ✓ Conduct evaluations
+- ✓ Try to train a model with proper hyperparameters and get some proper test results

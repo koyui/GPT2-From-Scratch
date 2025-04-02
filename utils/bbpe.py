@@ -123,8 +123,11 @@ if __name__ == "__main__":
     # Code for test BBPE
     df = pd.read_csv('./deps/reviews.csv')
     data_list = df.iloc[:, 0].to_list()
-    bbpe = BBPE(1024)
-    bbpe.from_file('./deps/merge_rule.json')
-    encoded = bbpe.encode("你好！请问你能编码这句话吗？这是在测试你的tokenize功能。")
+    bbpe = BBPE(2048)
+    # bbpe.build_vocab(data_list, save_merge='')
+    bbpe.from_file('./deps/merge_rule_1024.json')
+    encoded = bbpe.encode("好看我非常喜欢这部电影，五颗星")
+    for token in encoded:
+        print(bbpe.decode([token]))
     print(encoded)
     print(bbpe.decode(encoded))
