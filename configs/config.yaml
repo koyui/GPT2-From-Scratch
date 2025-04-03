@@ -47,6 +47,7 @@ TEST:
   from_pretrained: ./ckpts/gpt2_20250402_022928/54.pth
   from_file: ./test/input.txt
   result_save: ./test/result.txt
+  vis: './tmp/vis'
 
 EVALUATE:
   # evaluate_folder:

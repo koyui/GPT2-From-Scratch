@@ -6,6 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import os.path as osp
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap as LSC
 
 from tqdm import trange, tqdm
 from omegaconf import OmegaConf
@@ -105,17 +108,59 @@ class Trainer(nn.Module):
         save_path = osp.join(save_dir, f'{epoch}.pth')
         torch.save(self.model.state_dict(), save_path)
         
-    def generate(self, x):
+    def generate(self, x, vis=''):
+        all_topk_probs = []
+        all_topk_tokens = []
         # TODO: Real generate with batch, now batch generate assumes all sentences in the same size without padding, 
         while x.shape[1] < self.config.DATA.max_tokens:
             with torch.no_grad():
                 logits, _ = self.model(x)  # (B, T, vocab_size)
                 logits = logits[:, -1, :]   # (B, vocab_size)
                 probs = F.softmax(logits, dim=-1)
+                
                 topk_probs, topk_indices = torch.topk(probs, self.config.MODEL.topk, dim=-1)  # (B, topk), (B, topk)
+                all_topk_probs.append(topk_probs[0].cpu().numpy())
+                
+                tokens = []
+                for idx in topk_indices[0]:
+                    if int(idx) == self.tokenizer.sep_token:
+                        tokens.append('[SEP]')
+                    elif int(idx) == self.tokenizer.eos_token:
+                        tokens.append('[EOS]')
+                    elif int(idx) == self.tokenizer.pad_token:
+                        tokens.append('[PAD]')
+                    else:
+                        tokens.append(self.tokenizer.decode([int(idx)]))
+                all_topk_tokens.append(tokens)
+                
                 idxs = torch.multinomial(topk_probs, 1)    # (B, 1)
                 token_id = torch.gather(topk_indices, -1, idxs)
                 x = torch.cat([x, token_id], dim=-1)
+                if token_id[0] == self.tokenizer.eos_token:
+                    break
+        if vis:
+            N = len(all_topk_probs)
+            heatmap_data = np.array(all_topk_probs).T   # (top_k, N)
+            token_labels = np.array(all_topk_tokens).T  # (top_k, N)
+            
+            cmap = LSC.from_list('probability', 
+                [
+                    '#FFFFFF', '#FFF7EC', '#FEE8C8', 
+                    '#FDD49E', '#FDBB84', '#FC8D59', 
+                    '#EF6548', '#D7301F', '#990000'
+                ]
+            )
+    
+            plt.figure(figsize=(N * 1.2, self.config.MODEL.topk * 0.6))
+            plt.rcParams['font.sans-serif'] = ['SimHei']
+            ax = plt.gca()
+            ax.imshow(heatmap_data, cmap=cmap, vmin=0, vmax=1, aspect='auto')
+            for i in range(self.config.MODEL.topk):
+                for j in range(N):
+                    ax.text(j, i, token_labels[i, j], fontsize=10)
+            
+            plt.savefig(vis)
+        
         return x
     
     def train(self):
@@ -185,11 +230,11 @@ class Trainer(nn.Module):
         with open(config.TEST.from_file, 'r', encoding='utf-8') as f:
             text_list = f.readlines()
         results = []
-        for text in text_list:
+        for i, text in enumerate(text_list):
             prefix, suffix = text.split('[sep]')
             tokens = self.tokenizer.encode(prefix) + [self.tokenizer.sep_token] + self.tokenizer.encode(suffix)
             x = torch.as_tensor(tokens).unsqueeze(0).long().to(device)
-            text = self.generate(x)
+            text = self.generate(x, osp.join(config.TEST.vis, f'{i}.png'))
             decoded_text = self.batch_decode(text)
             results += decoded_text
             

@@ -17,6 +17,7 @@ All dependencies:
 > pandas        
 > natsort       
 > omegaconf 
+> matplotlib
 ```
 conda create -n koyui_gpt2 python=3.10 -y
 conda activate koyui_gpt2
