@@ -16,7 +16,7 @@ All dependencies:
 > regex      
 > pandas        
 > natsort       
-> omegaconf 
+> omegaconf         
 > matplotlib
 ```
 conda create -n koyui_gpt2 python=3.10 -y

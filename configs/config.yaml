@@ -27,9 +27,9 @@ MODEL:
   # vocab_size: 1024
   vocab_size: 2550 # for bert
 
-  n_emb: 768
+  n_emb: 96
   n_head: 3
-  n_layer: 12
+  n_layer: 6
   max_tokens: 256
   topk: 3
 
@@ -44,7 +44,7 @@ TRAIN:
 
 TEST:
   # from_pretrained: ./ckpts/gpt2_20250329_205802/36.pth
-  from_pretrained: ./ckpts/gpt2_20250402_022928/54.pth
+  from_pretrained: ./ckpts/gpt2_20250329_143840/12.pth
   from_file: ./test/input.txt
   result_save: ./test/result.txt
   vis: './tmp/vis'
