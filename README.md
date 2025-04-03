@@ -6,15 +6,17 @@ Build a lightweight GPT2 from scratch, train it on movie reviews, and complete m
 I have only tested the code on ``Windows 11``.
 
 All dependencies:
-> regex
-> tqdm
-> pandas
-> omegaconf
-> numpy==1.26.4
-> transformers==2.2.0
-> bert-score==0.3.2
-> natsort
-
+> python=3.10      
+> CUDA=11.7     
+> torch=2.0.1       
+> numpy=1.26.4     
+> bert-score=0.3.2         
+> transformers=2.2.0           
+> tqdm  
+> regex      
+> pandas        
+> natsort       
+> omegaconf 
 ```
 conda create -n koyui_gpt2 python=3.10 -y
 conda activate koyui_gpt2
