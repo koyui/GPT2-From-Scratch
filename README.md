@@ -3,6 +3,18 @@
 Build a lightweight GPT2 from scratch, train it on movie reviews, and complete movie reviews based on the prompt words.
 
 ### For Windows
+I have only tested the code on ``Windows 11``.
+
+All dependencies:
+> regex
+> tqdm
+> pandas
+> omegaconf
+> numpy==1.26.4
+> transformers==2.2.0
+> bert-score==0.3.2
+> natsort
+
 ```
 conda create -n koyui_gpt2 python=3.10 -y
 conda activate koyui_gpt2
@@ -12,6 +24,36 @@ pip install -r requirements.txt
 
 ### Tokenizer
 I have tried to implement a bbpe tokenizer, another tokenzier is from pretrained bert-base-chinese `https://hf-mirror.com/google-bert/bert-base-chinese/tree/main`
+
+### Project Structure
+```
+ckpts/
+|--gpt2_time_stamp/         # Checkpoints here
+configs/
+|--config.yaml              # Project configs
+data/
+|--dataset.py               # GPT2 Dataset
+|--utils.py                 # Collate Fn
+deps/
+|--bert-base-chinese/
+|--reviews.csv              # Training Data
+|--merge/map_rules.json     # Tokenizer Rules
+models/
+|--model.py                 # GPT2 Models
+test/
+|--input.txt
+|--result.txt
+utils/
+|--bbpe.py                  # BBPE Class
+|--custom_bert_tokenizer.py # BertTokenizer Wrapper
+|--visualize_bbpe_vocab.py  # Visualization Tools
+README.md
+requirements.txt/
+trainer.py                  # MAIN
+```
+
+### Run
+Run `python trainer.py` to train/test/evaluate your GPT2 model.
 
 ### Device
 My device (RTX 3060 Laptop GPU with 6GB VRAM and i7-12700H CPU) is capable of training.
